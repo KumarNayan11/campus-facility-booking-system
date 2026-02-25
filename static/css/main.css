@@ -1,0 +1,47 @@
+/* CampusBook — Global Styles */
+
+body {
+    background-color: #f8f9fa;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+/* Navbar brand */
+.navbar-brand {
+    font-size: 1.3rem;
+    letter-spacing: 0.5px;
+}
+
+/* Card hover effect */
+.card {
+    transition: box-shadow 0.2s ease;
+}
+.card:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+
+/* Badge role labels */
+.badge.bg-warning {
+    font-size: 0.7rem;
+    vertical-align: middle;
+}
+
+/* Form container */
+.form-card {
+    max-width: 480px;
+    margin: 0 auto;
+    background: #fff;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+
+/* Table improvements */
+table thead {
+    background-color: #0d6efd;
+    color: white;
+}
+
+/* Status badges */
+.badge-confirmed   { background-color: #198754; }
+.badge-cancelled   { background-color: #dc3545; }
+.badge-waitlisted  { background-color: #ffc107; color: #000; }
