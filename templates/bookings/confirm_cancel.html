@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block title %}Cancel Booking — CampusBook{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="bi bi-x-circle"></i> Cancel Booking</h5>
+            </div>
+            <div class="card-body text-center">
+                <p class="fs-5">Are you sure you want to cancel your booking for</p>
+                <p class="fw-bold fs-4">{{ booking.facility.name }}</p>
+                <p class="text-muted">
+                    {{ booking.date|date:"l, d F Y" }} &bull;
+                    {{ booking.start_time|time:"H:i" }} – {{ booking.end_time|time:"H:i" }}
+                </p>
+
+                <div class="alert alert-warning small text-start">
+                    <i class="bi bi-info-circle"></i>
+                    If someone is on the waitlist for this slot, they will be automatically confirmed.
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex gap-2 justify-content-center mt-3">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-x-circle"></i> Yes, Cancel
+                        </button>
+                        <a href="{% url 'bookings:list' %}" class="btn btn-outline-secondary">Keep Booking</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,61 +1,180 @@
 {% extends 'base.html' %}
-{% block title %}Home — CampusBook{% endblock %}
+{% block title %}CampusBook — Campus Facility Booking{% endblock %}
 
 {% block content %}
-<div class="row align-items-center my-5">
-    <div class="col-md-7">
-        <h1 class="display-5 fw-bold">Campus Facility Booking</h1>
-        <p class="lead text-muted">
-            Book labs, seminar halls, and sports areas seamlessly.
-            Conflict-free scheduling powered by smart time-slot detection.
-        </p>
-        <div class="d-flex gap-2 mt-4">
-            <a href="{% url 'facilities:list' %}" class="btn btn-primary btn-lg">
-                <i class="bi bi-grid"></i> Browse Facilities
-            </a>
-            {% if not request.user.is_authenticated %}
-            <a href="{% url 'users:register' %}" class="btn btn-outline-secondary btn-lg">
-                <i class="bi bi-person-plus"></i> Get Started
-            </a>
-            {% else %}
-            <a href="{% url 'bookings:create' %}" class="btn btn-success btn-lg">
-                <i class="bi bi-plus-circle"></i> New Booking
-            </a>
-            {% endif %}
+
+<!-- ── Hero ──────────────────────────────────────────────────────────────── -->
+<div class="text-center py-5 mb-4">
+    <h1 class="display-5 fw-bold mb-2">
+        <i class="bi bi-building text-primary"></i> CampusBook
+    </h1>
+    <p class="lead text-muted">
+        Campus Facility Booking &amp; Utilization System
+    </p>
+    <p class="text-muted small">
+        Book labs &bull; Seminar halls &bull; Sports areas &bull; Smart conflict detection
+    </p>
+</div>
+
+<!-- ── Not logged in: Role Selector Panels ───────────────────────────────── -->
+{% if not request.user.is_authenticated %}
+<div class="row g-4 justify-content-center mb-5">
+
+    <!-- Student Panel -->
+    <div class="col-md-5">
+        <div class="card h-100 border-primary shadow-sm text-center p-4">
+            <div class="card-body">
+                <div class="mb-3">
+                    <i class="bi bi-mortarboard" style="font-size: 3.5rem; color: #0d6efd;"></i>
+                </div>
+                <h3 class="card-title fw-bold">I'm a Student</h3>
+                <p class="card-text text-muted">
+                    Browse available facilities, book a time slot, and manage your reservations.
+                    Get notified when a waitlisted slot opens up.
+                </p>
+                <ul class="text-start text-muted small mb-4 ps-3">
+                    <li>Browse &amp; filter facilities</li>
+                    <li>Book labs, halls, and sports areas</li>
+                    <li>Auto waitlist on conflicts</li>
+                    <li>View and cancel your bookings</li>
+                </ul>
+                <a href="{% url 'users:login' %}" class="btn btn-primary btn-lg w-100 mb-2">
+                    <i class="bi bi-box-arrow-in-right"></i> Student Login
+                </a>
+                <a href="{% url 'users:register' %}" class="btn btn-outline-primary w-100">
+                    <i class="bi bi-person-plus"></i> Create Student Account
+                </a>
+            </div>
         </div>
     </div>
-    <div class="col-md-5 text-center">
-        <i class="bi bi-building" style="font-size:8rem; color:#0d6efd; opacity:0.15;"></i>
+
+    <!-- Admin Panel -->
+    <div class="col-md-5">
+        <div class="card h-100 border-warning shadow-sm text-center p-4">
+            <div class="card-body">
+                <div class="mb-3">
+                    <i class="bi bi-shield-lock" style="font-size: 3.5rem; color: #f0ad4e;"></i>
+                </div>
+                <h3 class="card-title fw-bold">I'm an Admin</h3>
+                <p class="card-text text-muted">
+                    Manage facilities, oversee all bookings, and access utilization
+                    analytics and reports across the campus.
+                </p>
+                <ul class="text-start text-muted small mb-4 ps-3">
+                    <li>Add / edit / deactivate facilities</li>
+                    <li>View and manage all bookings</li>
+                    <li>Utilization charts &amp; peak-hour reports</li>
+                    <li>Full activity audit trail</li>
+                </ul>
+                <a href="{% url 'users:login' %}" class="btn btn-warning btn-lg w-100 mb-2">
+                    <i class="bi bi-box-arrow-in-right"></i> Admin Login
+                </a>
+                <a href="{% url 'users:register' %}" class="btn btn-outline-warning w-100">
+                    <i class="bi bi-person-gear"></i> Create Admin Account
+                </a>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Explore without login -->
+<div class="text-center mb-5">
+    <a href="{% url 'facilities:list' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-eye"></i> Browse Facilities without logging in
+    </a>
+</div>
+
+<!-- ── Logged in: Role-based Dashboard ──────────────────────────────────── -->
+{% else %}
+<div class="row mb-4">
+    <div class="col">
+        <h4 class="fw-bold">
+            Welcome back, {{ request.user.username }}!
+            {% if request.user.profile.is_admin %}
+            <span class="badge bg-warning text-dark ms-2">Admin</span>
+            {% else %}
+            <span class="badge bg-primary ms-2">Student</span>
+            {% endif %}
+        </h4>
+        <p class="text-muted">What would you like to do today?</p>
     </div>
 </div>
 
-<!-- Quick stats row (visible when logged in) -->
-{% if request.user.is_authenticated %}
-<hr>
-<div class="row text-center g-3 mt-2">
+<!-- Student quick-links -->
+{% if request.user.profile.is_student %}
+<div class="row g-3 mb-4">
     <div class="col-md-4">
-        <div class="card p-3">
-            <i class="bi bi-calendar-check fs-2 text-success"></i>
-            <h6 class="mt-2">My Bookings</h6>
-            <a href="{% url 'bookings:list' %}" class="btn btn-sm btn-outline-success mt-1">View</a>
-        </div>
+        <a href="{% url 'bookings:create' %}" class="text-decoration-none">
+            <div class="card text-center p-4 border-success h-100 hover-shadow">
+                <i class="bi bi-calendar-plus fs-1 text-success mb-2"></i>
+                <h6 class="fw-bold">New Booking</h6>
+                <p class="text-muted small mb-0">Reserve a facility slot</p>
+            </div>
+        </a>
     </div>
     <div class="col-md-4">
-        <div class="card p-3">
-            <i class="bi bi-grid fs-2 text-primary"></i>
-            <h6 class="mt-2">All Facilities</h6>
-            <a href="{% url 'facilities:list' %}" class="btn btn-sm btn-outline-primary mt-1">Browse</a>
-        </div>
+        <a href="{% url 'bookings:list' %}" class="text-decoration-none">
+            <div class="card text-center p-4 border-primary h-100 hover-shadow">
+                <i class="bi bi-calendar-check fs-1 text-primary mb-2"></i>
+                <h6 class="fw-bold">My Bookings</h6>
+                <p class="text-muted small mb-0">View &amp; manage reservations</p>
+            </div>
+        </a>
     </div>
-    {% if request.user.profile.is_admin %}
     <div class="col-md-4">
-        <div class="card p-3">
-            <i class="bi bi-bar-chart fs-2 text-warning"></i>
-            <h6 class="mt-2">Analytics</h6>
-            <a href="{% url 'analytics:dashboard' %}" class="btn btn-sm btn-outline-warning mt-1">Dashboard</a>
-        </div>
+        <a href="{% url 'facilities:list' %}" class="text-decoration-none">
+            <div class="card text-center p-4 border-secondary h-100 hover-shadow">
+                <i class="bi bi-grid fs-1 text-secondary mb-2"></i>
+                <h6 class="fw-bold">Browse Facilities</h6>
+                <p class="text-muted small mb-0">Explore available spaces</p>
+            </div>
+        </a>
     </div>
-    {% endif %}
 </div>
+{% endif %}
+
+<!-- Admin quick-links -->
+{% if request.user.profile.is_admin %}
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <a href="{% url 'facilities:list' %}" class="text-decoration-none">
+            <div class="card text-center p-4 border-primary h-100 hover-shadow">
+                <i class="bi bi-grid fs-1 text-primary mb-2"></i>
+                <h6 class="fw-bold">Facilities</h6>
+                <p class="text-muted small mb-0">View &amp; manage all facilities</p>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3">
+        <a href="{% url 'facilities:create' %}" class="text-decoration-none">
+            <div class="card text-center p-4 border-success h-100 hover-shadow">
+                <i class="bi bi-plus-square fs-1 text-success mb-2"></i>
+                <h6 class="fw-bold">Add Facility</h6>
+                <p class="text-muted small mb-0">Register a new space</p>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3">
+        <a href="{% url 'bookings:list' %}" class="text-decoration-none">
+            <div class="card text-center p-4 border-info h-100 hover-shadow">
+                <i class="bi bi-calendar-check fs-1 text-info mb-2"></i>
+                <h6 class="fw-bold">All Bookings</h6>
+                <p class="text-muted small mb-0">Overview of reservations</p>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3">
+        <a href="{% url 'analytics:dashboard' %}" class="text-decoration-none">
+            <div class="card text-center p-4 border-warning h-100 hover-shadow">
+                <i class="bi bi-bar-chart fs-1 text-warning mb-2"></i>
+                <h6 class="fw-bold">Analytics</h6>
+                <p class="text-muted small mb-0">Charts &amp; utilization reports</p>
+            </div>
+        </a>
+    </div>
+</div>
+{% endif %}
+
 {% endif %}
 {% endblock %}

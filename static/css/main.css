@@ -13,10 +13,22 @@ body {
 
 /* Card hover effect */
 .card {
-    transition: box-shadow 0.2s ease;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
+
 .card:hover {
-    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+/* Dashboard quick-action cards */
+.hover-shadow {
+    transition: box-shadow 0.2s ease, transform 0.15s ease;
+    cursor: pointer;
+}
+
+.hover-shadow:hover {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15) !important;
+    transform: translateY(-3px);
 }
 
 /* Badge role labels */
@@ -32,7 +44,7 @@ body {
     background: #fff;
     border-radius: 12px;
     padding: 2rem;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
 }
 
 /* Table improvements */
@@ -42,6 +54,15 @@ table thead {
 }
 
 /* Status badges */
-.badge-confirmed   { background-color: #198754; }
-.badge-cancelled   { background-color: #dc3545; }
-.badge-waitlisted  { background-color: #ffc107; color: #000; }
+.badge-confirmed {
+    background-color: #198754;
+}
+
+.badge-cancelled {
+    background-color: #dc3545;
+}
+
+.badge-waitlisted {
+    background-color: #ffc107;
+    color: #000;
+}

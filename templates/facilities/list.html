@@ -91,7 +91,11 @@
 {% endif %}
 
 {% else %}
-<div class="alert alert-info">No facilities found. {% if request.user.is_authenticated and request.user.profile.is_admin
-    %}<a href="{% url 'facilities:create' %}">Add one now.</a>{% endif %}</div>
+<div class="alert alert-info">
+    No facilities found.
+    {% if request.user.is_authenticated %}
+    {% if request.user.profile.is_admin %}<a href="{% url 'facilities:create' %}">Add one now.</a>{% endif %}
+    {% endif %}
+</div>
 {% endif %}
 {% endblock %}
