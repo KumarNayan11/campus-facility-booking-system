@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}{{ title }} — CampusBook{% endblock %}
+{% block title %}{{ title }} - CampusBook{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
@@ -30,6 +30,9 @@
                     <div class="mb-3">
                         <label class="form-label">Type</label>
                         {{ form.facility_type }}
+                        {% if form.facility_type.errors %}
+                        <div class="text-danger small mt-1">{{ form.facility_type.errors.0 }}</div>
+                        {% endif %}
                     </div>
 
                     <div class="mb-3">
@@ -40,9 +43,46 @@
                         {% endif %}
                     </div>
 
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Open Time</label>
+                            {{ form.open_time }}
+                            {% if form.open_time.errors %}
+                            <div class="text-danger small mt-1">{{ form.open_time.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Close Time</label>
+                            {{ form.close_time }}
+                            {% if form.close_time.errors %}
+                            <div class="text-danger small mt-1">{{ form.close_time.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Assigned Manager</label>
+                        {{ form.manager }}
+                        {% if form.manager.errors %}
+                        <div class="text-danger small mt-1">{{ form.manager.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Max Pending Requests</label>
+                        {{ form.max_pending_requests }}
+                        {% if form.max_pending_requests.errors %}
+                        <div class="text-danger small mt-1">{{ form.max_pending_requests.errors.0 }}</div>
+                        {% endif %}
+                        <div class="form-text">Set to 0 if you want to disable the overlapping pending queue cap.</div>
+                    </div>
+
                     <div class="mb-3">
                         <label class="form-label">Description <span class="text-muted">(optional)</span></label>
                         {{ form.description }}
+                        {% if form.description.errors %}
+                        <div class="text-danger small mt-1">{{ form.description.errors.0 }}</div>
+                        {% endif %}
                     </div>
 
                     <div class="mb-3 form-check">

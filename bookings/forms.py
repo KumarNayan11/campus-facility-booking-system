@@ -1,41 +1,71 @@
 from django import forms
-from datetime import date
-from .models import Booking
+from django.utils import timezone
+
+from .models import BookingRequest
 
 
-class BookingForm(forms.ModelForm):
+class BookingRequestForm(forms.ModelForm):
+    """Form for users to submit a new booking request."""
+
     class Meta:
-        model  = Booking
-        fields = ['facility', 'date', 'start_time', 'end_time']
+        model = BookingRequest
+        fields = ['facility', 'start_datetime', 'end_datetime', 'purpose']
         widgets = {
-            'facility':   forms.Select(attrs={'class': 'form-select'}),
-            'date':       forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'start_time': forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'}),
-            'end_time':   forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'}),
+            'facility': forms.Select(attrs={'class': 'form-select'}),
+            'start_datetime': forms.DateTimeInput(
+                attrs={'class': 'form-control', 'type': 'datetime-local'},
+                format='%Y-%m-%dT%H:%M',
+            ),
+            'end_datetime': forms.DateTimeInput(
+                attrs={'class': 'form-control', 'type': 'datetime-local'},
+                format='%Y-%m-%dT%H:%M',
+            ),
+            'purpose': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'e.g. Lab session for CS301 - 3rd year students',
+            }),
         }
 
     def __init__(self, *args, **kwargs):
-        # Accept a pre-selected facility from query param (?facility=<pk>)
         facility_id = kwargs.pop('facility_id', None)
         super().__init__(*args, **kwargs)
-        # Only show active facilities in dropdown
+
         from facilities.models import Facility
+
         self.fields['facility'].queryset = Facility.objects.filter(is_active=True)
+        self.fields['start_datetime'].input_formats = ['%Y-%m-%dT%H:%M']
+        self.fields['end_datetime'].input_formats = ['%Y-%m-%dT%H:%M']
         if facility_id:
             self.fields['facility'].initial = facility_id
 
     def clean(self):
         cleaned_data = super().clean()
-        booking_date = cleaned_data.get('date')
-        start_time   = cleaned_data.get('start_time')
-        end_time     = cleaned_data.get('end_time')
+        start_datetime = cleaned_data.get('start_datetime')
+        end_datetime = cleaned_data.get('end_datetime')
 
-        # 1. Date must not be in the past
-        if booking_date and booking_date < date.today():
-            raise forms.ValidationError('Booking date cannot be in the past.')
+        if start_datetime and timezone.is_naive(start_datetime):
+            start_datetime = timezone.make_aware(start_datetime, timezone.get_current_timezone())
+            cleaned_data['start_datetime'] = start_datetime
+        if end_datetime and timezone.is_naive(end_datetime):
+            end_datetime = timezone.make_aware(end_datetime, timezone.get_current_timezone())
+            cleaned_data['end_datetime'] = end_datetime
 
-        # 2. end_time must be after start_time
-        if start_time and end_time and end_time <= start_time:
-            raise forms.ValidationError('End time must be after start time.')
+        if start_datetime and end_datetime and end_datetime <= start_datetime:
+            raise forms.ValidationError('End date and time must be after the start date and time.')
 
         return cleaned_data
+
+
+class RejectRequestForm(forms.Form):
+    """Simple form for the manager to optionally supply a rejection reason."""
+
+    reason = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 2,
+            'placeholder': 'Optional: reason for rejection (visible to the requester)',
+        }),
+        label='Rejection Reason',
+    )

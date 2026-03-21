@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block title %}Reject Request — CampusBook{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card border-danger shadow-sm">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="bi bi-x-circle"></i> Reject Request #{{ br.pk }}</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-4">
+                    <dt class="col-sm-4">Requested by</dt>
+                    <dd class="col-sm-8">{{ br.user.username }}</dd>
+                    <dt class="col-sm-4">Facility</dt>
+                    <dd class="col-sm-8">{{ br.facility.name }}</dd>
+                    <dt class="col-sm-4">Date &amp; Time</dt>
+                    <dd class="col-sm-8">{{ br.date|date:"d F Y" }} &bull; {{ br.start_time|time:"H:i" }} – {{ br.end_time|time:"H:i" }}</dd>
+                    <dt class="col-sm-4">Purpose</dt>
+                    <dd class="col-sm-8">{{ br.purpose }}</dd>
+                </dl>
+
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">{{ form.reason.label }}</label>
+                        {{ form.reason }}
+                        <div class="form-text">This message will be visible to the requester.</div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-x-circle"></i> Confirm Rejection
+                        </button>
+                        <a href="{% url 'bookings:admin_dashboard' %}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

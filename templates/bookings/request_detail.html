@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% block title %}Request #{{ br.pk }} - CampusBook{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <nav aria-label="breadcrumb" class="mb-3">
+            <ol class="breadcrumb">
+                {% if can_manage_booking %}
+                <li class="breadcrumb-item"><a href="{% url 'bookings:admin_dashboard' %}">Manager Dashboard</a></li>
+                {% else %}
+                <li class="breadcrumb-item"><a href="{% url 'bookings:my_requests' %}">My Requests</a></li>
+                {% endif %}
+                <li class="breadcrumb-item active">Request #{{ br.pk }}</li>
+            </ol>
+        </nav>
+
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Booking Request #{{ br.pk }}</h5>
+                {% if br.status == 'pending' %}
+                <span class="badge bg-warning text-dark fs-6"><i class="bi bi-hourglass-split"></i> Pending</span>
+                {% elif br.status == 'approved' %}
+                <span class="badge bg-success fs-6"><i class="bi bi-check-circle"></i> Approved</span>
+                {% elif br.status == 'rejected' %}
+                <span class="badge bg-danger fs-6"><i class="bi bi-x-circle"></i> Rejected</span>
+                {% elif br.status == 'withdrawn' %}
+                <span class="badge bg-secondary fs-6"><i class="bi bi-dash-circle"></i> Withdrawn</span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-4">Requested by</dt>
+                    <dd class="col-sm-8">{{ br.user.get_full_name|default:br.user.username }}
+                        <span class="text-muted small">({{ br.user.username }})</span>
+                    </dd>
+
+                    <dt class="col-sm-4">Facility</dt>
+                    <dd class="col-sm-8">
+                        <a href="{% url 'facilities:detail' br.facility.pk %}">{{ br.facility.name }}</a>
+                        <span class="text-muted">({{ br.facility.get_facility_type_display }})</span>
+                    </dd>
+
+                    <dt class="col-sm-4">Date</dt>
+                    <dd class="col-sm-8">{{ br.date|date:"l, d F Y" }}</dd>
+
+                    <dt class="col-sm-4">Time Slot</dt>
+                    <dd class="col-sm-8">{{ br.start_time|time:"H:i" }} - {{ br.end_time|time:"H:i" }}</dd>
+
+                    <dt class="col-sm-4">Purpose</dt>
+                    <dd class="col-sm-8">{{ br.purpose }}</dd>
+
+                    <dt class="col-sm-4">Submitted On</dt>
+                    <dd class="col-sm-8">{{ br.created_at|date:"d M Y, H:i" }}</dd>
+
+                    {% if br.reviewed_by %}
+                    <dt class="col-sm-4">Reviewed by</dt>
+                    <dd class="col-sm-8">{{ br.reviewed_by.get_full_name|default:br.reviewed_by.username }}</dd>
+
+                    <dt class="col-sm-4">Reviewed On</dt>
+                    <dd class="col-sm-8">{{ br.reviewed_at|date:"d M Y, H:i" }}</dd>
+                    {% endif %}
+
+                    {% if br.rejection_reason %}
+                    <dt class="col-sm-4">Rejection Reason</dt>
+                    <dd class="col-sm-8">
+                        <div class="alert alert-danger py-2 mb-0">{{ br.rejection_reason }}</div>
+                    </dd>
+                    {% endif %}
+                </dl>
+            </div>
+            <div class="card-footer d-flex gap-2">
+                {% if br.status == 'pending' and br.user == request.user %}
+                <a href="{% url 'bookings:withdraw' br.pk %}" class="btn btn-outline-danger btn-sm">
+                    <i class="bi bi-x-circle"></i> Withdraw Request
+                </a>
+                {% endif %}
+                {% if can_manage_booking and br.status == 'pending' %}
+                <form method="post" action="{% url 'bookings:admin_approve' br.pk %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success btn-sm">
+                        <i class="bi bi-check-circle"></i> Approve
+                    </button>
+                </form>
+                <a href="{% url 'bookings:admin_reject' br.pk %}" class="btn btn-danger btn-sm">
+                    <i class="bi bi-x-circle"></i> Reject
+                </a>
+                {% endif %}
+                {% if can_manage_booking %}
+                <a href="{% url 'bookings:admin_dashboard' %}" class="btn btn-outline-secondary btn-sm ms-auto">
+                    <- Back to Dashboard
+                </a>
+                {% else %}
+                <a href="{% url 'bookings:my_requests' %}" class="btn btn-outline-secondary btn-sm ms-auto">
+                    <- Back to My Requests
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

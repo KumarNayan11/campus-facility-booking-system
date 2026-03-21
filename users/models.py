@@ -1,17 +1,46 @@
-from django.db import models
 from django.contrib.auth.models import User
+from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 
+class Department(models.Model):
+    """
+    An organizational unit (department / school / centre) in the campus.
+
+    Facilities and user profiles can optionally be linked to a department,
+    enabling future department-scoped administration.
+    """
+
+    name = models.CharField(max_length=100, unique=True)
+    code = models.CharField(
+        max_length=20,
+        unique=True,
+        help_text='Short identifier, e.g. "CS", "MECH", "ADMIN".',
+    )
+    description = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ['name']
+        verbose_name = 'Department'
+        verbose_name_plural = 'Departments'
+
+    def __str__(self):
+        return f'{self.name} ({self.code})'
+
+
 class UserProfile(models.Model):
     """
-    Extends Django's built-in User with a role field.
-    Uses OneToOneField so Django auth (sessions, passwords, permissions) is untouched.
+    Extends Django's built-in User with a role field and an optional department.
+
+    The role field continues to drive broad app access, while facility-manager
+    permissions are derived from the facilities assigned to the user.
     """
+
     ROLE_CHOICES = [
-        ('student', 'Student'),
-        ('admin', 'Admin'),
+        ('user', 'User'),
+        ('dept_admin', 'Department Admin'),
+        ('sys_admin', 'System Admin'),
     ]
 
     user = models.OneToOneField(
@@ -22,20 +51,35 @@ class UserProfile(models.Model):
     role = models.CharField(
         max_length=10,
         choices=ROLE_CHOICES,
-        default='student',
+        default='user',
+    )
+    department = models.ForeignKey(
+        Department,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='members',
+        help_text='The department this user belongs to.',
     )
 
     def __str__(self):
-        return f"{self.user.username} ({self.get_role_display()})"
+        return f'{self.user.username} ({self.get_role_display()})'
 
-    def is_admin(self):
-        return self.role == 'admin'
+    def is_user(self):
+        return self.role == 'user'
 
-    def is_student(self):
-        return self.role == 'student'
+    def is_sys_admin(self):
+        return self.role == 'sys_admin'
 
+    def is_dept_admin(self):
+        return self.role == 'dept_admin'
 
-# ── Signals ─────────────────────────────────────────────────────────────────
+    def is_facility_manager(self):
+        return self.is_sys_admin() or self.is_dept_admin() or self.user.managed_facilities.exists()
+
+    def can_view_analytics(self):
+        return self.is_facility_manager() or self.is_dept_admin()
+
 
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):

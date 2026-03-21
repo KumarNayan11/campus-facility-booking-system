@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block title %}Unified Calendar — CampusBook{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0">
+        <i class="bi bi-calendar3-week text-primary me-2"></i>Booking Calendar
+    </h1>
+    <div class="d-flex gap-2">
+        <a href="?week={{ prev_week|date:'Y-m-d' }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-chevron-left"></i> Prev Week
+        </a>
+        <a href="?week={% now 'Y-m-d' %}" class="btn btn-outline-primary btn-sm">Today</a>
+        <a href="?week={{ next_week|date:'Y-m-d' }}" class="btn btn-outline-secondary btn-sm">
+            Next Week <i class="bi bi-chevron-right"></i>
+        </a>
+    </div>
+</div>
+
+<p class="text-muted small mb-3">
+    Showing all approved bookings across all facilities for
+    <strong>{{ week_start|date:"D, d M Y" }}</strong> — <strong>{{ week_end|date:"D, d M Y" }}</strong>
+</p>
+
+<div class="row g-3">
+    {% for day, bookings in calendar_rows %}
+    <div class="col-12 col-md-6 col-xl-4">
+        <div class="card h-100 shadow-sm {% if day == today %}border-primary{% endif %}">
+            <div class="card-header d-flex align-items-center gap-2
+                        {% if day == today %}bg-primary text-white{% else %}bg-light{% endif %}">
+                <span class="fw-bold">{{ day|date:"l" }}</span>
+                <span class="{% if day == today %}text-white-50{% else %}text-muted{% endif %} small">
+                    {{ day|date:"d M" }}
+                </span>
+                {% if bookings %}
+                <span class="badge {% if day == today %}bg-white text-primary{% else %}bg-primary{% endif %} ms-auto">
+                    {{ bookings|length }}
+                </span>
+                {% endif %}
+            </div>
+            <ul class="list-group list-group-flush">
+                {% for br in bookings %}
+                <li class="list-group-item list-group-item-action py-2 px-3">
+                    <div class="d-flex align-items-start gap-2">
+                        <div class="flex-shrink-0 mt-1">
+                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2">
+                                {{ br.start_time|time:"H:i" }}–{{ br.end_time|time:"H:i" }}
+                            </span>
+                        </div>
+                        <div class="flex-grow-1 overflow-hidden">
+                            <div class="fw-semibold text-truncate small">{{ br.facility.name }}</div>
+                            <div class="text-muted" style="font-size:.75rem;">
+                                <i class="bi bi-person me-1"></i>{{ br.user.get_full_name|default:br.user.username }}
+                            </div>
+                            {% if br.purpose %}
+                            <div class="text-muted text-truncate" style="font-size: .72rem;" title="{{ br.purpose }}">
+                                {{ br.purpose|truncatechars:55 }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </li>
+                {% empty %}
+                <li class="list-group-item text-muted small text-center py-3">
+                    <i class="bi bi-calendar-x me-1"></i>No bookings
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Highlight today's card
+    const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+</script>
+{% endblock %}

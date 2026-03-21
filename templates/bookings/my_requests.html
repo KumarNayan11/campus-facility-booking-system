@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% block title %}My Requests — CampusBook{% endblock %}
+
+{% block content %}
+
+<!-- ── Page Header ──────────────────────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0"><i class="bi bi-calendar-check"></i> My Booking Requests</h4>
+    <a href="{% url 'bookings:create' %}" class="btn btn-primary btn-sm">
+        <i class="bi bi-send"></i> New Request
+    </a>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<!-- ── My Requests Table ─────────────────────────────────────────────────── -->
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+{% if requests %}
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-white py-2">
+        <span class="fw-semibold text-secondary small text-uppercase">
+            <i class="bi bi-list-check me-1"></i> All My Requests
+        </span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 small">
+            <thead class="table-light">
+                <tr>
+                    <th>Facility</th>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Purpose</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for br in requests %}
+                <tr>
+                    <td class="fw-semibold">{{ br.facility.name }}</td>
+                    <td>{{ br.date|date:"d M Y" }}</td>
+                    <td class="text-nowrap">{{ br.start_time|time:"H:i" }} – {{ br.end_time|time:"H:i" }}</td>
+                    <td class="text-muted" style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                        {{ br.purpose }}
+                    </td>
+                    <td>
+                        {% if br.status == 'pending' %}
+                            <span class="badge bg-warning text-dark">Pending</span>
+                        {% elif br.status == 'approved' %}
+                            <span class="badge bg-success">Approved</span>
+                        {% elif br.status == 'rejected' %}
+                            <span class="badge bg-danger">Rejected</span>
+                        {% elif br.status == 'withdrawn' %}
+                            <span class="badge bg-secondary">Withdrawn</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end text-nowrap">
+                        <a href="{% url 'bookings:detail' br.pk %}" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        {% if br.status == 'pending' %}
+                        <a href="{% url 'bookings:withdraw' br.pk %}" class="btn btn-outline-danger btn-sm ms-1">
+                            <i class="bi bi-x-circle"></i>
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="card shadow-sm border-0">
+    <div class="card-body text-center py-5 text-muted">
+        <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+        You haven't submitted any booking requests yet.
+        <div class="mt-3">
+            <a href="{% url 'bookings:create' %}" class="btn btn-primary btn-sm">
+                <i class="bi bi-send"></i> Submit a Request
+            </a>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block title %}Withdraw Request — CampusBook{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <div class="card border-danger shadow-sm">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="bi bi-x-circle"></i> Withdraw Booking Request</h5>
+            </div>
+            <div class="card-body text-center">
+                <p class="fs-5 mt-2">Are you sure you want to withdraw your request for</p>
+                <p class="fw-bold fs-4">{{ br.facility.name }}</p>
+                <p class="text-muted">
+                    {{ br.date|date:"l, d F Y" }} &bull;
+                    {{ br.start_time|time:"H:i" }} – {{ br.end_time|time:"H:i" }}
+                </p>
+
+                <div class="alert alert-warning small text-start">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    Withdrawn requests cannot be reinstated. You will need to submit a new request.
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex gap-2 justify-content-center mt-3">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-x-circle"></i> Yes, Withdraw
+                        </button>
+                        <a href="{% url 'bookings:my_requests' %}" class="btn btn-outline-secondary">Keep Request</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

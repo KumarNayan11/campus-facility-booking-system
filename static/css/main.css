@@ -1,26 +1,23 @@
-/* CampusBook — Global Styles */
+/* ============================================================
+   CampusBook — Global Styles
+   ============================================================ */
 
 body {
-    background-color: #f8f9fa;
+    background-color: #f0f2f5;
     font-family: 'Segoe UI', sans-serif;
 }
 
-/* Navbar brand */
+/* ── Navbar ─────────────────────────────────────────────────── */
 .navbar-brand {
     font-size: 1.3rem;
     letter-spacing: 0.5px;
 }
 
-/* Card hover effect */
+/* ── Generic card hover lift ─────────────────────────────────── */
 .card {
     transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
-.card:hover {
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-}
-
-/* Dashboard quick-action cards */
 .hover-shadow {
     transition: box-shadow 0.2s ease, transform 0.15s ease;
     cursor: pointer;
@@ -31,13 +28,17 @@ body {
     transform: translateY(-3px);
 }
 
-/* Badge role labels */
+/* ── Badges ──────────────────────────────────────────────────── */
 .badge.bg-warning {
     font-size: 0.7rem;
     vertical-align: middle;
 }
 
-/* Form container */
+.badge-confirmed  { background-color: #198754; }
+.badge-cancelled  { background-color: #dc3545; }
+.badge-waitlisted { background-color: #ffc107; color: #000; }
+
+/* ── Form card ───────────────────────────────────────────────── */
 .form-card {
     max-width: 480px;
     margin: 0 auto;
@@ -47,22 +48,307 @@ body {
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
 }
 
-/* Table improvements */
+/* ── Table improvements ──────────────────────────────────────── */
 table thead {
     background-color: #0d6efd;
     color: white;
 }
 
-/* Status badges */
-.badge-confirmed {
-    background-color: #198754;
+/* ============================================================
+   STAT CARDS (Admin Dashboard)
+   ============================================================ */
+.stat-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 1.2rem 1.4rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,.07);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    border-left: 4px solid transparent;
+    transition: transform .15s ease, box-shadow .15s ease;
 }
 
-.badge-cancelled {
-    background-color: #dc3545;
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(0,0,0,.10);
 }
 
-.badge-waitlisted {
-    background-color: #ffc107;
-    color: #000;
+.stat-card__icon { font-size: 1.3rem; margin-bottom: 2px; }
+.stat-card__value { font-size: 2rem; font-weight: 700; line-height: 1; }
+.stat-card__label { font-size: 0.78rem; text-transform: uppercase; letter-spacing: .05em; color: #6c757d; }
+
+.stat-card--warning { border-left-color: #f59e0b; }
+.stat-card--warning .stat-card__icon,
+.stat-card--warning .stat-card__value { color: #d97706; }
+
+.stat-card--success { border-left-color: #22c55e; }
+.stat-card--success .stat-card__icon,
+.stat-card--success .stat-card__value { color: #16a34a; }
+
+.stat-card--danger  { border-left-color: #ef4444; }
+.stat-card--danger  .stat-card__icon,
+.stat-card--danger  .stat-card__value { color: #dc2626; }
+
+.stat-card--info    { border-left-color: #3b82f6; }
+.stat-card--info    .stat-card__icon,
+.stat-card--info    .stat-card__value { color: #2563eb; }
+
+/* ── Dashboard filter header ─────────────────────────────────── */
+.dashboard-filter-header {
+    background: #f8f9fa;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #495057;
+    border-bottom: 1px solid rgba(0,0,0,.06);
+}
+
+/* ── Dashboard table head ────────────────────────────────────── */
+.dashboard-table-head {
+    background-color: #f1f3f5;
+    color: #495057;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+}
+
+.dashboard-table-head th { border-bottom: 2px solid #dee2e6; }
+
+/* ============================================================
+   REQUEST CARDS (Pending queue)
+   ============================================================ */
+.request-card {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.07);
+    border: 1px solid rgba(0,0,0,.05);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: box-shadow .2s ease, transform .15s ease;
+    height: 100%;
+}
+
+.request-card:hover {
+    box-shadow: 0 8px 24px rgba(0,0,0,.11);
+    transform: translateY(-2px);
+}
+
+.request-card__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: .85rem 1rem;
+    background: #f8f9fa;
+    border-bottom: 1px solid rgba(0,0,0,.06);
+}
+
+.request-card__body {
+    padding: .9rem 1rem;
+    flex: 1;
+}
+
+.request-card__meta-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.84rem;
+}
+
+.request-card__footer {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .75rem 1rem;
+    background: #f8f9fa;
+    border-top: 1px solid rgba(0,0,0,.06);
+}
+
+.request-purpose {
+    background: #f0f2f5;
+    border-radius: 6px;
+    padding: .4rem .65rem;
+    font-size: 0.8rem;
+}
+
+/* ============================================================
+   FACILITY TYPE ICON BADGES (shared by both pages)
+   ============================================================ */
+.ftype-badge {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.05rem;
+    flex-shrink: 0;
+}
+
+.ftype-badge--lab    { background: #dbeafe; color: #1d4ed8; }
+.ftype-badge--hall   { background: #f3e8ff; color: #7c3aed; }
+.ftype-badge--sports { background: #dcfce7; color: #15803d; }
+
+/* ============================================================
+   FACILITY CARDS
+   ============================================================ */
+.facility-card {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.07);
+    border: 1px solid rgba(0,0,0,.05);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: box-shadow .2s ease, transform .15s ease;
+}
+
+.facility-card:hover {
+    box-shadow: 0 8px 28px rgba(0,0,0,.12);
+    transform: translateY(-3px);
+}
+
+.facility-card__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: .85rem 1rem;
+    background: #f8f9fa;
+    border-bottom: 1px solid rgba(0,0,0,.06);
+}
+
+.facility-card__body {
+    padding: 1rem;
+    flex: 1;
+}
+
+.facility-card__footer {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .75rem 1rem;
+    background: #f8f9fa;
+    border-top: 1px solid rgba(0,0,0,.06);
+}
+
+/* ── Facility Meta Grid ──────────────────────────────────────── */
+.facility-meta-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .5rem;
+}
+
+.facility-meta-item {
+    background: #f0f2f5;
+    border-radius: 8px;
+    padding: .45rem .65rem;
+    font-size: 0.82rem;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* ============================================================
+   AVAILABILITY TIMELINE
+   ============================================================ */
+.avail-timeline {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: .55rem .7rem;
+    border: 1px solid rgba(0,0,0,.06);
+}
+
+.avail-timeline__label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.73rem;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+.avail-slots {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+}
+
+.avail-slot {
+    width: 26px;
+    height: 18px;
+    border-radius: 4px;
+    cursor: default;
+    transition: transform .1s ease;
+}
+
+.avail-slot:hover { transform: scaleY(1.2); }
+
+.avail-slot--booked  { background: #16a34a; }
+.avail-slot--pending { background: #ea580c; }
+.avail-slot--free    { background: #e2e8f0; border: 1px solid #cbd5e1; }
+
+/* ── Legend ──────────────────────────────────────────────────── */
+.avail-legend {
+    display: flex;
+    gap: 1.2rem;
+    flex-wrap: wrap;
+}
+
+.avail-legend__item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.avail-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+.avail-dot--booked  { background: #16a34a; }
+.avail-dot--pending { background: #ea580c; }
+.avail-dot--free    { background: #e2e8f0; border: 1px solid #cbd5e1; }
+
+/* ── Filter Pills ────────────────────────────────────────────── */
+.facilities-filter-bar {
+    background: #fff;
+    border-radius: 12px;
+    padding: .85rem 1.1rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06);
+    border: 1px solid rgba(0,0,0,.05);
+}
+
+.filter-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: .3rem .75rem;
+    border-radius: 20px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    text-decoration: none;
+    border: 1.5px solid #dee2e6;
+    color: #495057;
+    background: #fff;
+    transition: all .15s ease;
+}
+
+.filter-pill:hover {
+    border-color: #0d6efd;
+    color: #0d6efd;
+    background: #eff6ff;
+}
+
+.filter-pill--active {
+    background: #0d6efd;
+    border-color: #0d6efd;
+    color: #fff !important;
 }

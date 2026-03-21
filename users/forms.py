@@ -1,19 +1,28 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
-from .models import UserProfile
 
 
 class RegisterForm(UserCreationForm):
     """
     Extends Django's built-in UserCreationForm with email + role selection.
-    Role determines which Django Group the user is placed in.
+
+    Email is stored on Django's built-in User model — no custom model needed.
+    This makes future OAuth / allauth integration straightforward: the OAuth
+    backend simply sets User.email without changing any schema.
     """
-    email = forms.EmailField(required=True)
-    role  = forms.ChoiceField(
-        choices=UserProfile.ROLE_CHOICES,
-        initial='student',
-        help_text='Admins can manage facilities; Students can book them.',
+    email = forms.EmailField(
+        required=True,
+        widget=forms.EmailInput(attrs={'class': 'form-control'}),
+    )
+    role = forms.ChoiceField(
+        choices=[
+            ('user', 'User'),
+            ('manager', 'Manager'),
+        ],
+        initial='user',
+        help_text='Users can submit booking requests. Managers govern the system.',
+        widget=forms.Select(attrs={'class': 'form-select'}),
     )
 
     class Meta:
@@ -30,7 +39,7 @@ class RegisterForm(UserCreationForm):
             user.profile.save()
             # Add user to the matching Django Group for permission-based access
             from django.contrib.auth.models import Group
-            group_name = 'Admin' if self.cleaned_data['role'] == 'admin' else 'Student'
+            group_name = self.cleaned_data['role'].capitalize()
             group, _ = Group.objects.get_or_create(name=group_name)
             user.groups.add(group)
         return user

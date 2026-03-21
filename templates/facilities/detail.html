@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}{{ facility.name }} — CampusBook{% endblock %}
+{% block title %}{{ facility.name }} - CampusBook{% endblock %}
 
 {% block content %}
 <div class="row">
@@ -18,11 +18,28 @@
             </div>
             <div class="card-body">
                 <dl class="row">
-                    <dt class="col-sm-3">Capacity</dt>
-                    <dd class="col-sm-9"><i class="bi bi-people"></i> {{ facility.capacity }} people</dd>
+                    <dt class="col-sm-4">Capacity</dt>
+                    <dd class="col-sm-8"><i class="bi bi-people"></i> {{ facility.capacity }} people</dd>
 
-                    <dt class="col-sm-3">Status</dt>
-                    <dd class="col-sm-9">
+                    <dt class="col-sm-4">Operating Hours</dt>
+                    <dd class="col-sm-8">{{ facility.open_time|time:"H:i" }} - {{ facility.close_time|time:"H:i" }}</dd>
+
+                    <dt class="col-sm-4">Assigned Managers</dt>
+                    <dd class="col-sm-8">
+                        {% if facility.managers.all %}
+                            {% for mngr in facility.managers.all %}
+                                {{ mngr.get_full_name|default:mngr.username }}{% if not forloop.last %}, {% endif %}
+                            {% endfor %}
+                        {% else %}
+                        <span class="text-muted">Not assigned</span>
+                        {% endif %}
+                    </dd>
+
+                    <dt class="col-sm-4">Pending Queue Limit</dt>
+                    <dd class="col-sm-8">{{ facility.max_pending_requests }}</dd>
+
+                    <dt class="col-sm-4">Status</dt>
+                    <dd class="col-sm-8">
                         {% if facility.is_active %}
                         <span class="badge bg-success">Active</span>
                         {% else %}
@@ -30,8 +47,8 @@
                         {% endif %}
                     </dd>
 
-                    <dt class="col-sm-3">Description</dt>
-                    <dd class="col-sm-9">{{ facility.description|default:"—" }}</dd>
+                    <dt class="col-sm-4">Description</dt>
+                    <dd class="col-sm-8">{{ facility.description|default:"-" }}</dd>
                 </dl>
             </div>
             <div class="card-footer d-flex gap-2">
@@ -45,7 +62,7 @@
                 </a>
                 {% endif %}
 
-                {% if request.user.is_authenticated and request.user.profile.is_admin %}
+                {% if request.user.is_authenticated and request.user.profile.is_sys_admin %}
                 <a href="{% url 'facilities:edit' facility.pk %}" class="btn btn-outline-warning ms-auto">
                     <i class="bi bi-pencil"></i> Edit
                 </a>

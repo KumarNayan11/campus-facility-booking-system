@@ -2,60 +2,159 @@
 {% block title %}Facilities — CampusBook{% endblock %}
 
 {% block content %}
+
+<!-- ── Page Header ──────────────────────────────────────────── -->
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="bi bi-grid"></i> Facilities</h2>
-    {% if request.user.is_authenticated and request.user.profile.is_admin %}
-    <a href="{% url 'facilities:create' %}" class="btn btn-primary">
+    <div>
+        <h4 class="fw-bold mb-0"><i class="bi bi-grid text-primary"></i> Browse Facilities</h4>
+        <p class="text-muted small mb-0">Explore available campus spaces and check real-time availability</p>
+    </div>
+    {% if request.user.is_authenticated and request.user.profile.is_sys_admin %}
+    <a href="{% url 'facilities:create' %}" class="btn btn-primary btn-sm">
         <i class="bi bi-plus-circle"></i> Add Facility
     </a>
     {% endif %}
 </div>
 
-<!-- Filter bar -->
-<form method="get" class="mb-4">
-    <div class="d-flex gap-2 flex-wrap">
-        <a href="{% url 'facilities:list' %}"
-            class="btn btn-sm {% if not selected_type %}btn-primary{% else %}btn-outline-secondary{% endif %}">
-            All
-        </a>
-        {% for val, label in type_choices %}
-        <a href="?type={{ val }}"
-            class="btn btn-sm {% if selected_type == val %}btn-primary{% else %}btn-outline-secondary{% endif %}">
-            {{ label }}
-        </a>
-        {% endfor %}
-    </div>
-</form>
+<!-- ── Filter Bar ────────────────────────────────────────────── -->
+<div class="facilities-filter-bar mb-4">
+    <form method="get" class="d-flex flex-wrap align-items-center gap-3">
+        <!-- Type Pills -->
+        <div class="d-flex gap-2 flex-wrap align-items-center">
+            <span class="small fw-semibold text-muted text-uppercase me-1" style="letter-spacing:.04em;">Type:</span>
+            <a href="{% url 'facilities:list' %}{% if avail_date %}?avail_date={{ avail_date|date:'Y-m-d' }}{% endif %}"
+               class="filter-pill {% if not selected_type %}filter-pill--active{% endif %}">
+                All
+            </a>
+            {% for val, label in type_choices %}
+            <a href="?type={{ val }}{% if avail_date %}&avail_date={{ avail_date|date:'Y-m-d' }}{% endif %}"
+               class="filter-pill {% if selected_type == val %}filter-pill--active{% endif %}">
+                {% if val == 'lab' %}<i class="bi bi-pc-display"></i>{% elif val == 'hall' %}<i class="bi bi-building"></i>{% else %}<i class="bi bi-trophy"></i>{% endif %}
+                {{ label }}
+            </a>
+            {% endfor %}
+        </div>
+        <!-- Date Picker -->
+        <div class="d-flex align-items-center gap-2 ms-auto">
+            <input type="number" name="min_capacity" placeholder="Min Capacity" value="{{ min_capacity }}" class="form-control form-control-sm" style="width:120px;" onchange="this.form.submit()">
+            <input type="text" name="amenity" placeholder="Amenities..." value="{{ amenity }}" class="form-control form-control-sm" style="width:130px;" onchange="this.form.submit()">
+            <label class="small fw-semibold text-muted text-nowrap mb-0 ms-2">
+                <i class="bi bi-calendar-check text-primary"></i> Check Date:
+            </label>
+            <input type="date" name="avail_date"
+                   value="{{ avail_date|date:'Y-m-d' }}"
+                   class="form-control form-control-sm"
+                   style="width:148px;"
+                   onchange="this.form.submit()">
+            {% if selected_type %}
+            <input type="hidden" name="type" value="{{ selected_type }}">
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- ── Availability Legend ───────────────────────────────────── -->
+<div class="avail-legend mb-4">
+    <span class="avail-legend__item">
+        <span class="avail-dot avail-dot--booked"></span> Approved / Booked
+    </span>
+    <span class="avail-legend__item">
+        <span class="avail-dot avail-dot--pending"></span> Pending Approval
+    </span>
+    <span class="avail-legend__item">
+        <span class="avail-dot avail-dot--free"></span> Available
+    </span>
+</div>
 
 {% if facilities %}
 <div class="row g-4">
     {% for facility in facilities %}
     <div class="col-md-4">
-        <div class="card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <h5 class="card-title">{{ facility.name }}</h5>
-                    <span class="badge bg-secondary">{{ facility.get_facility_type_display }}</span>
+        <div class="facility-card h-100">
+            <!-- Card Header -->
+            <div class="facility-card__header">
+                <div class="d-flex align-items-center gap-2">
+                    {% if facility.facility_type == 'lab' %}
+                        <span class="ftype-badge ftype-badge--lab"><i class="bi bi-pc-display"></i></span>
+                    {% elif facility.facility_type == 'hall' %}
+                        <span class="ftype-badge ftype-badge--hall"><i class="bi bi-building"></i></span>
+                    {% else %}
+                        <span class="ftype-badge ftype-badge--sports"><i class="bi bi-trophy"></i></span>
+                    {% endif %}
+                    <div>
+                        <h6 class="fw-bold mb-0 text-dark">{{ facility.name }}</h6>
+                        <span class="small text-muted">{{ facility.get_facility_type_display }}</span>
+                    </div>
                 </div>
-                <p class="card-text text-muted small">{{ facility.description|truncatechars:100 }}</p>
-                <p class="mb-1"><i class="bi bi-people"></i> Capacity: <strong>{{ facility.capacity }}</strong></p>
+                {% if facility.is_active %}
+                    <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size:0.68rem;">Active</span>
+                {% else %}
+                    <span class="badge bg-secondary-subtle text-secondary border" style="font-size:0.68rem;">Inactive</span>
+                {% endif %}
             </div>
-            <div class="card-footer d-flex gap-2">
+
+            <!-- Card Body -->
+            <div class="facility-card__body">
+                {% if facility.description %}
+                <p class="text-muted small mb-3" style="line-height:1.5;">{{ facility.description|truncatechars:90 }}</p>
+                {% endif %}
+
+                <div class="facility-meta-grid mb-3">
+                    <div class="facility-meta-item">
+                        <i class="bi bi-people text-primary"></i>
+                        <span class="fw-semibold">{{ facility.capacity }}</span>
+                        <span class="text-muted">capacity</span>
+                    </div>
+                    <div class="facility-meta-item">
+                        <i class="bi bi-clock text-primary"></i>
+                        <span class="fw-semibold">{{ facility.start_hour_label }}</span>
+                        <span class="text-muted">–</span>
+                        <span class="fw-semibold">{{ facility.end_hour_label }}</span>
+                    </div>
+                </div>
+
+                <!-- Availability Timeline -->
+                <div class="avail-timeline">
+                    <div class="avail-timeline__label">
+                        <i class="bi bi-calendar2-check text-primary" style="font-size:0.75rem;"></i>
+                        <span>{{ avail_date|date:"D, d M Y" }}</span>
+                    </div>
+                    <div class="avail-slots gap-1">
+                        {% for slot in facility.slots %}
+                        <div class="d-flex flex-column align-items-center">
+                            <span class="text-muted" style="font-size: 0.65rem; margin-bottom: 2px;" title="{{ slot.label }}">{{ slot.label|slice:":2" }}</span>
+                            {% if slot.state == 'booked' %}
+                                <div class="avail-slot avail-slot--booked m-0" title="{{ slot.label }} — Booked"></div>
+                            {% elif slot.state == 'pending' %}
+                                <div class="avail-slot avail-slot--pending m-0" title="{{ slot.label }} — Pending"></div>
+                            {% else %}
+                                <div class="avail-slot avail-slot--free m-0" title="{{ slot.label }} — Available"></div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card Footer -->
+            <div class="facility-card__footer">
                 <a href="{% url 'facilities:detail' facility.pk %}" class="btn btn-sm btn-outline-primary">
                     <i class="bi bi-eye"></i> View
                 </a>
                 {% if request.user.is_authenticated %}
-                <a href="{% url 'bookings:create' %}?facility={{ facility.pk }}" class="btn btn-sm btn-success">
+                <a href="{% url 'bookings:create' %}?facility={{ facility.pk }}" class="btn btn-sm btn-primary">
                     <i class="bi bi-calendar-plus"></i> Book
                 </a>
                 {% endif %}
-                {% if request.user.is_authenticated and request.user.profile.is_admin %}
-                <a href="{% url 'facilities:edit' facility.pk %}" class="btn btn-sm btn-outline-warning ms-auto">
-                    <i class="bi bi-pencil"></i>
-                </a>
-                <a href="{% url 'facilities:delete' facility.pk %}" class="btn btn-sm btn-outline-danger">
-                    <i class="bi bi-trash"></i>
-                </a>
+                {% if request.user.is_authenticated and request.user.profile.is_sys_admin %}
+                <div class="ms-auto d-flex gap-1">
+                    <a href="{% url 'facilities:edit' facility.pk %}" class="btn btn-sm btn-outline-warning">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                    <a href="{% url 'facilities:delete' facility.pk %}" class="btn btn-sm btn-outline-danger">
+                        <i class="bi bi-trash"></i>
+                    </a>
+                </div>
                 {% endif %}
             </div>
         </div>
@@ -63,15 +162,13 @@
     {% endfor %}
 </div>
 
-<!-- Pagination -->
 {% if is_paginated %}
-<nav class="mt-4 d-flex justify-content-center">
+<nav class="mt-5 d-flex justify-content-center">
     <ul class="pagination">
         {% if page_obj.has_previous %}
         <li class="page-item">
-            <a class="page-link"
-                href="?page={{ page_obj.previous_page_number }}{% if selected_type %}&type={{ selected_type }}{% endif %}">
-                &laquo;
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if avail_date %}&avail_date={{ avail_date|date:'Y-m-d' }}{% endif %}">
+                &laquo; Prev
             </a>
         </li>
         {% endif %}
@@ -80,9 +177,8 @@
         </li>
         {% if page_obj.has_next %}
         <li class="page-item">
-            <a class="page-link"
-                href="?page={{ page_obj.next_page_number }}{% if selected_type %}&type={{ selected_type }}{% endif %}">
-                &raquo;
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if avail_date %}&avail_date={{ avail_date|date:'Y-m-d' }}{% endif %}">
+                Next &raquo;
             </a>
         </li>
         {% endif %}
@@ -91,10 +187,14 @@
 {% endif %}
 
 {% else %}
-<div class="alert alert-info">
-    No facilities found.
-    {% if request.user.is_authenticated %}
-    {% if request.user.profile.is_admin %}<a href="{% url 'facilities:create' %}">Add one now.</a>{% endif %}
+<div class="text-center py-5 text-muted">
+    <i class="bi bi-inbox fs-1 d-block mb-3 text-secondary"></i>
+    <h6>No facilities found</h6>
+    <p class="small">Try a different type filter.</p>
+    {% if request.user.is_authenticated and request.user.profile.is_sys_admin %}
+    <a href="{% url 'facilities:create' %}" class="btn btn-primary btn-sm mt-2">
+        <i class="bi bi-plus-circle"></i> Add Facility
+    </a>
     {% endif %}
 </div>
 {% endif %}

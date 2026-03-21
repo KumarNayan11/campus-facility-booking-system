@@ -1,10 +1,10 @@
 {% extends 'base.html' %}
-{% block title %}My Profile — CampusBook{% endblock %}
+{% block title %}My Profile - CampusBook{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-6">
-        <div class="card mt-4">
+        <div class="card mt-4 shadow-sm">
             <div class="card-header bg-primary text-white">
                 <h5 class="mb-0"><i class="bi bi-person-circle"></i> My Profile</h5>
             </div>
@@ -21,7 +21,7 @@
                     <tr>
                         <th>Role</th>
                         <td>
-                            <span class="badge {% if profile.is_admin %}bg-danger{% else %}bg-primary{% endif %}">
+                            <span class="badge {% if profile.role != 'user' %}bg-warning text-dark{% else %}bg-primary{% endif %}">
                                 {{ profile.get_role_display }}
                             </span>
                         </td>
@@ -32,10 +32,16 @@
                     </tr>
                 </table>
             </div>
-            <div class="card-footer">
-                <a href="{% url 'bookings:list' %}" class="btn btn-outline-primary btn-sm">
-                    <i class="bi bi-calendar-check"></i> My Bookings
+            <div class="card-footer d-flex gap-2">
+                {% if profile.is_facility_manager %}
+                <a href="{% url 'bookings:admin_dashboard' %}" class="btn btn-outline-warning btn-sm">
+                    <i class="bi bi-shield-check"></i> Manager Dashboard
                 </a>
+                {% else %}
+                <a href="{% url 'bookings:my_requests' %}" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-calendar-check"></i> My Requests
+                </a>
+                {% endif %}
             </div>
         </div>
     </div>

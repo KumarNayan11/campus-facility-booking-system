@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% block title %}New Booking Request - CampusBook{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-7">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-calendar-plus"></i> {{ title }}</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info small mb-4">
+                    <i class="bi bi-info-circle-fill me-1"></i>
+                    Your request will be reviewed by the assigned facility manager before the booking is finalized.
+                    You can track the status in <strong>My Requests</strong>.
+                </div>
+
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                        <div>{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Facility</label>
+                        {{ form.facility }}
+                        {% if form.facility.errors %}
+                        <div class="text-danger small">{{ form.facility.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Start</label>
+                            {{ form.start_datetime }}
+                            {% if form.start_datetime.errors %}
+                            <div class="text-danger small">{{ form.start_datetime.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">End</label>
+                            {{ form.end_datetime }}
+                            {% if form.end_datetime.errors %}
+                            <div class="text-danger small">{{ form.end_datetime.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Purpose / Justification</label>
+                        {{ form.purpose }}
+                        {% if form.purpose.errors %}
+                        <div class="text-danger small">{{ form.purpose.errors.0 }}</div>
+                        {% endif %}
+                        <div class="form-text">Briefly describe why you need this facility.</div>
+                    </div>
+
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-send"></i> Submit Request
+                        </button>
+                        <a href="{% url 'bookings:my_requests' %}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,124 +1,107 @@
 {% extends 'base.html' %}
-{% block title %}CampusBook — Campus Facility Booking{% endblock %}
+{% block title %}CampusBook - Campus Facility Booking{% endblock %}
 
 {% block content %}
-
-<!-- ── Hero ──────────────────────────────────────────────────────────────── -->
 <div class="text-center py-5 mb-4">
     <h1 class="display-5 fw-bold mb-2">
         <i class="bi bi-building text-primary"></i> CampusBook
     </h1>
     <p class="lead text-muted">
-        Campus Facility Booking &amp; Utilization System
+        Campus Facility Booking and Utilization System
     </p>
     <p class="text-muted small">
-        Book labs &bull; Seminar halls &bull; Sports areas &bull; Smart conflict detection
+        Book labs, seminar halls, and sports areas with manager approval.
     </p>
 </div>
 
-<!-- ── Not logged in: Role Selector Panels ───────────────────────────────── -->
 {% if not request.user.is_authenticated %}
 <div class="row g-4 justify-content-center mb-5">
-
-    <!-- Student Panel -->
     <div class="col-md-5">
         <div class="card h-100 border-primary shadow-sm text-center p-4">
             <div class="card-body">
                 <div class="mb-3">
                     <i class="bi bi-mortarboard" style="font-size: 3.5rem; color: #0d6efd;"></i>
                 </div>
-                <h3 class="card-title fw-bold">I'm a Student</h3>
+                <h3 class="card-title fw-bold">Users</h3>
                 <p class="card-text text-muted">
-                    Browse available facilities, book a time slot, and manage your reservations.
-                    Get notified when a waitlisted slot opens up.
+                    Browse facilities, submit booking requests, and follow approval decisions in real time.
                 </p>
                 <ul class="text-start text-muted small mb-4 ps-3">
-                    <li>Browse &amp; filter facilities</li>
-                    <li>Book labs, halls, and sports areas</li>
-                    <li>Auto waitlist on conflicts</li>
-                    <li>View and cancel your bookings</li>
+                    <li>Browse and filter facilities</li>
+                    <li>Submit booking requests with purpose</li>
+                    <li>Track pending, approved, rejected, and withdrawn requests</li>
+                    <li>Withdraw pending requests any time</li>
                 </ul>
                 <a href="{% url 'users:login' %}" class="btn btn-primary btn-lg w-100 mb-2">
-                    <i class="bi bi-box-arrow-in-right"></i> Student Login
+                    <i class="bi bi-box-arrow-in-right"></i> Login
                 </a>
                 <a href="{% url 'users:register' %}" class="btn btn-outline-primary w-100">
-                    <i class="bi bi-person-plus"></i> Create Student Account
+                    <i class="bi bi-person-plus"></i> Create Account
                 </a>
             </div>
         </div>
     </div>
 
-    <!-- Admin Panel -->
     <div class="col-md-5">
         <div class="card h-100 border-warning shadow-sm text-center p-4">
             <div class="card-body">
                 <div class="mb-3">
                     <i class="bi bi-shield-lock" style="font-size: 3.5rem; color: #f0ad4e;"></i>
                 </div>
-                <h3 class="card-title fw-bold">I'm an Admin</h3>
+                <h3 class="card-title fw-bold">Admins and Managers</h3>
                 <p class="card-text text-muted">
-                    Manage facilities, oversee all bookings, and access utilization
-                    analytics and reports across the campus.
+                    Configure facilities, assign managers, and review bookings with audit visibility and analytics.
                 </p>
                 <ul class="text-start text-muted small mb-4 ps-3">
-                    <li>Add / edit / deactivate facilities</li>
-                    <li>View and manage all bookings</li>
-                    <li>Utilization charts &amp; peak-hour reports</li>
-                    <li>Full activity audit trail</li>
+                    <li>Assign managers to facilities</li>
+                    <li>Approve or reject requests per facility</li>
+                    <li>Use dynamic policies and queue limits</li>
+                    <li>Review analytics and audit logs</li>
                 </ul>
                 <a href="{% url 'users:login' %}" class="btn btn-warning btn-lg w-100 mb-2">
-                    <i class="bi bi-box-arrow-in-right"></i> Admin Login
-                </a>
-                <a href="{% url 'users:register' %}" class="btn btn-outline-warning w-100">
-                    <i class="bi bi-person-gear"></i> Create Admin Account
+                    <i class="bi bi-box-arrow-in-right"></i> Staff Login
                 </a>
             </div>
         </div>
     </div>
-
 </div>
 
-<!-- Explore without login -->
 <div class="text-center mb-5">
     <a href="{% url 'facilities:list' %}" class="btn btn-outline-secondary">
         <i class="bi bi-eye"></i> Browse Facilities without logging in
     </a>
 </div>
-
-<!-- ── Logged in: Role-based Dashboard ──────────────────────────────────── -->
 {% else %}
 <div class="row mb-4">
     <div class="col">
         <h4 class="fw-bold">
             Welcome back, {{ request.user.username }}!
-            {% if request.user.profile.is_admin %}
-            <span class="badge bg-warning text-dark ms-2">Admin</span>
+            {% if request.user.profile.is_facility_manager %}
+            <span class="badge bg-warning text-dark ms-2">Facility Manager</span>
             {% else %}
-            <span class="badge bg-primary ms-2">Student</span>
+            <span class="badge bg-primary ms-2">User</span>
             {% endif %}
         </h4>
         <p class="text-muted">What would you like to do today?</p>
     </div>
 </div>
 
-<!-- Student quick-links -->
-{% if request.user.profile.is_student %}
 <div class="row g-3 mb-4">
     <div class="col-md-4">
         <a href="{% url 'bookings:create' %}" class="text-decoration-none">
-            <div class="card text-center p-4 border-success h-100 hover-shadow">
-                <i class="bi bi-calendar-plus fs-1 text-success mb-2"></i>
-                <h6 class="fw-bold">New Booking</h6>
-                <p class="text-muted small mb-0">Reserve a facility slot</p>
+            <div class="card text-center p-4 border-primary h-100 hover-shadow">
+                <i class="bi bi-send fs-1 text-primary mb-2"></i>
+                <h6 class="fw-bold">New Request</h6>
+                <p class="text-muted small mb-0">Submit a booking request</p>
             </div>
         </a>
     </div>
     <div class="col-md-4">
-        <a href="{% url 'bookings:list' %}" class="text-decoration-none">
-            <div class="card text-center p-4 border-primary h-100 hover-shadow">
-                <i class="bi bi-calendar-check fs-1 text-primary mb-2"></i>
-                <h6 class="fw-bold">My Bookings</h6>
-                <p class="text-muted small mb-0">View &amp; manage reservations</p>
+        <a href="{% url 'bookings:my_requests' %}" class="text-decoration-none">
+            <div class="card text-center p-4 border-success h-100 hover-shadow">
+                <i class="bi bi-calendar-check fs-1 text-success mb-2"></i>
+                <h6 class="fw-bold">My Requests</h6>
+                <p class="text-muted small mb-0">Track your booking requests</p>
             </div>
         </a>
     </div>
@@ -132,21 +115,11 @@
         </a>
     </div>
 </div>
-{% endif %}
 
-<!-- Admin quick-links -->
-{% if request.user.profile.is_admin %}
+{% if request.user.profile.is_sys_admin or request.user.profile.is_dept_admin or request.user.profile.can_view_analytics %}
 <div class="row g-3 mb-4">
-    <div class="col-md-3">
-        <a href="{% url 'facilities:list' %}" class="text-decoration-none">
-            <div class="card text-center p-4 border-primary h-100 hover-shadow">
-                <i class="bi bi-grid fs-1 text-primary mb-2"></i>
-                <h6 class="fw-bold">Facilities</h6>
-                <p class="text-muted small mb-0">View &amp; manage all facilities</p>
-            </div>
-        </a>
-    </div>
-    <div class="col-md-3">
+    {% if request.user.profile.is_sys_admin %}
+    <div class="col-md-4">
         <a href="{% url 'facilities:create' %}" class="text-decoration-none">
             <div class="card text-center p-4 border-success h-100 hover-shadow">
                 <i class="bi bi-plus-square fs-1 text-success mb-2"></i>
@@ -155,26 +128,75 @@
             </div>
         </a>
     </div>
-    <div class="col-md-3">
-        <a href="{% url 'bookings:list' %}" class="text-decoration-none">
+    {% endif %}
+    {% if request.user.profile.can_view_analytics %}
+    <div class="col-md-4">
+        <a href="{% url 'analytics:dashboard' %}" class="text-decoration-none">
             <div class="card text-center p-4 border-info h-100 hover-shadow">
-                <i class="bi bi-calendar-check fs-1 text-info mb-2"></i>
-                <h6 class="fw-bold">All Bookings</h6>
-                <p class="text-muted small mb-0">Overview of reservations</p>
+                <i class="bi bi-bar-chart fs-1 text-info mb-2"></i>
+                <h6 class="fw-bold">Analytics</h6>
+                <p class="text-muted small mb-0">Charts and utilization reports</p>
             </div>
         </a>
     </div>
-    <div class="col-md-3">
-        <a href="{% url 'analytics:dashboard' %}" class="text-decoration-none">
+    {% endif %}
+    {% if request.user.profile.is_sys_admin or request.user.profile.is_dept_admin %}
+    <div class="col-md-4">
+        <a href="{% url 'facilities:list' %}" class="text-decoration-none">
+            <div class="card text-center p-4 border-primary h-100 hover-shadow">
+                <i class="bi bi-grid fs-1 text-primary mb-2"></i>
+                <h6 class="fw-bold">Facilities</h6>
+                <p class="text-muted small mb-0">Manage all facilities</p>
+            </div>
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+{% if request.user.profile.is_facility_manager %}
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <a href="{% url 'bookings:admin_dashboard' %}" class="text-decoration-none">
             <div class="card text-center p-4 border-warning h-100 hover-shadow">
-                <i class="bi bi-bar-chart fs-1 text-warning mb-2"></i>
-                <h6 class="fw-bold">Analytics</h6>
-                <p class="text-muted small mb-0">Charts &amp; utilization reports</p>
+                <i class="bi bi-shield-check fs-1 text-warning mb-2"></i>
+                <h6 class="fw-bold">Manager Dashboard</h6>
+                <p class="text-muted small mb-0">Review and approve requests</p>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-6">
+        <a href="{% url 'analytics:utilization' %}" class="text-decoration-none">
+            <div class="card text-center p-4 border-info h-100 hover-shadow">
+                <i class="bi bi-file-earmark-bar-graph fs-1 text-info mb-2"></i>
+                <h6 class="fw-bold">Utilization Reports</h6>
+                <p class="text-muted small mb-0">Utilization and demand insights</p>
             </div>
         </a>
     </div>
 </div>
 {% endif %}
-
+<hr class="my-5 opacity-25">
+<h5 class="fw-bold mb-3"><i class="bi bi-calendar-event text-primary"></i> My Upcoming Bookings</h5>
+{% if upcoming_bookings %}
+<div class="list-group mb-5 shadow-sm border-0">
+    {% for br in upcoming_bookings %}
+    <a href="{% url 'bookings:request_detail' br.pk %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center p-3">
+        <div>
+            <h6 class="mb-1 fw-bold">{{ br.facility.name }}</h6>
+            <small class="text-muted"><i class="bi bi-calendar"></i> {{ br.date|date:"D, d M Y" }} &bull; <i class="bi bi-clock"></i> {{ br.start_time|time:"H:i" }} - {{ br.end_time|time:"H:i" }}</small>
+        </div>
+        <span class="badge {% if br.status == 'approved' %}bg-success{% else %}bg-warning text-dark{% endif %} rounded-pill px-3 py-2">
+            {{ br.get_status_display }}
+        </span>
+    </a>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-5 bg-light rounded text-muted mb-5 border">
+    <i class="bi bi-calendar-x fs-1 opacity-25 d-block mb-3"></i>
+    <p class="mb-0">You have no upcoming bookings.</p>
+</div>
+{% endif %}
 {% endif %}
 {% endblock %}

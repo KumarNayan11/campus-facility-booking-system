@@ -1,177 +1,207 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied, ValidationError
+from django.shortcuts import get_object_or_404, redirect, render
 
-from .models import Booking, WaitlistEntry
-from .forms import BookingForm
-from core.models import ActivityLog
+from facilities.models import Facility
+from users.decorators import facility_manager_required
+
+from .forms import BookingRequestForm, RejectRequestForm
+from .models import BookingRequest
+from .services import (
+    approve_booking_request,
+    reject_booking_request,
+    submit_booking_request,
+    withdraw_booking_request,
+)
 
 
 @login_required
-def booking_create(request):
-    """
-    Create a new booking with conflict detection.
+def request_create(request):
+    """Submit a new booking request that starts in pending status."""
 
-    Conflict logic:
-        A slot is taken if any CONFIRMED booking for the same facility/date satisfies:
-            existing.start_time < new.end_time  AND  existing.end_time > new.start_time
-        This single filter catches ALL overlap cases.
-
-    Outcome:
-        - No conflict  → status = 'confirmed'
-        - Conflict exists → status = 'waitlisted' (added to WaitlistEntry)
-    """
     facility_id = request.GET.get('facility')
-    form = BookingForm(facility_id=facility_id)
+    form = BookingRequestForm(request.POST or None, facility_id=facility_id)
+    ctx = {'form': form, 'title': 'New Booking Request'}
 
-    if request.method == 'POST':
-        form = BookingForm(request.POST, facility_id=facility_id)
-        if form.is_valid():
-            booking = form.save(commit=False)
-            booking.user = request.user
-
-            # ── Conflict Detection ────────────────────────────────────────────
-            conflict_exists = Booking.objects.filter(
-                facility=booking.facility,
-                date=booking.date,
-                status='confirmed',
-                start_time__lt=booking.end_time,   # existing starts before new ends
-                end_time__gt=booking.start_time,   # existing ends after new starts
-            ).exists()
-
-            if conflict_exists:
-                # ── Add to Waitlist ───────────────────────────────────────────
-                WaitlistEntry.objects.create(
-                    user=request.user,
-                    facility=booking.facility,
-                    date=booking.date,
-                    start_time=booking.start_time,
-                    end_time=booking.end_time,
-                )
-                ActivityLog.objects.create(
-                    user=request.user,
-                    action='BOOKING_WAITLISTED',
-                    details=(
-                        f'{request.user.username} added to waitlist for '
-                        f'{booking.facility.name} on {booking.date} '
-                        f'{booking.start_time}–{booking.end_time}.'
-                    ),
-                )
-                messages.warning(
-                    request,
-                    f'The slot is already booked. You have been added to the waitlist for '
-                    f'{booking.facility.name} on {booking.date}.'
-                )
-                return redirect('bookings:list')
-
-            # ── Confirm Booking ───────────────────────────────────────────────
-            booking.status = 'confirmed'
-            booking.save()
-            ActivityLog.objects.create(
+    if request.method == 'POST' and form.is_valid():
+        try:
+            booking_request = submit_booking_request(
                 user=request.user,
-                action='BOOKING_CREATED',
-                details=(
-                    f'{request.user.username} booked {booking.facility.name} '
-                    f'on {booking.date} from {booking.start_time} to {booking.end_time}.'
-                ),
+                facility=form.cleaned_data['facility'],
+                start_datetime=form.cleaned_data['start_datetime'],
+                end_datetime=form.cleaned_data['end_datetime'],
+                purpose=form.cleaned_data['purpose'],
             )
-            messages.success(
-                request,
-                f'Booking confirmed for {booking.facility.name} on {booking.date}!'
-            )
-            return redirect('bookings:list')
+        except ValidationError as exc:
+            for error in exc.messages:
+                form.add_error(None, error)
+            return render(request, 'bookings/request_form.html', ctx)
 
-    return render(request, 'bookings/form.html', {'form': form, 'title': 'New Booking'})
+        messages.success(
+            request,
+            f'Your booking request for {booking_request.facility.name} on '
+            f'{booking_request.date} has been submitted and is pending approval.'
+        )
+        return redirect('bookings:my_requests')
+
+    return render(request, 'bookings/request_form.html', ctx)
 
 
 @login_required
-def booking_list(request):
-    """Show all bookings belonging to the logged-in user."""
-    bookings = Booking.objects.filter(user=request.user).select_related('facility')
-    waitlist = WaitlistEntry.objects.filter(user=request.user).select_related('facility')
-    return render(request, 'bookings/list.html', {
-        'bookings': bookings,
-        'waitlist': waitlist,
+def my_requests(request):
+    """List all booking requests belonging to the logged-in user."""
+
+    requests_qs = (
+        BookingRequest.objects
+        .filter(user=request.user)
+        .select_related('facility', 'reviewed_by')
+        .prefetch_related('approval_steps')
+    )
+    return render(request, 'bookings/my_requests.html', {'requests': requests_qs})
+
+
+@login_required
+def request_detail(request, pk):
+    """Show a single booking request to its owner or assigned facility manager."""
+
+    booking_request = get_object_or_404(
+        BookingRequest.objects
+        .select_related('facility', 'reviewed_by', 'user')
+        .prefetch_related('approval_steps__approver'),
+        pk=pk,
+    )
+    can_manage_booking = booking_request.facility.is_managed_by(request.user)
+    is_dept_admin_for_facility = (
+        request.user.profile.is_dept_admin() and 
+        booking_request.facility.department == request.user.profile.department
+    )
+    if booking_request.user != request.user and not can_manage_booking and not is_dept_admin_for_facility:
+        messages.error(request, 'You do not have permission to view this request.')
+        return redirect('bookings:my_requests')
+
+    return render(request, 'bookings/request_detail.html', {
+        'br': booking_request,
+        'can_manage_booking': can_manage_booking,
+        'approval_steps': booking_request.approval_steps.order_by('level'),
     })
 
 
 @login_required
-def booking_detail(request, pk):
-    """Show a single booking — only accessible by its owner."""
-    booking = get_object_or_404(Booking, pk=pk, user=request.user)
-    return render(request, 'bookings/detail.html', {'booking': booking})
+def request_withdraw(request, pk):
+    """Allow the owner to withdraw their own pending request."""
 
-
-@login_required
-def booking_cancel(request, pk):
-    """
-    Cancel a booking (POST only).
-    After cancellation, promote the oldest waitlist entry for the same slot.
-    """
-    booking = get_object_or_404(Booking, pk=pk, user=request.user)
-
-    if booking.status != 'confirmed':
-        messages.error(request, 'Only confirmed bookings can be cancelled.')
-        return redirect('bookings:list')
+    booking_request = get_object_or_404(
+        BookingRequest.objects.select_related('facility'),
+        pk=pk,
+        user=request.user,
+    )
 
     if request.method == 'POST':
-        booking.status = 'cancelled'
-        booking.save()
+        try:
+            withdraw_booking_request(booking_request=booking_request, acting_user=request.user)
+        except ValidationError as exc:
+            messages.error(request, exc.messages[0])
+            return redirect('bookings:my_requests')
 
-        ActivityLog.objects.create(
-            user=request.user,
-            action='BOOKING_CANCELLED',
-            details=(
-                f'{request.user.username} cancelled booking for '
-                f'{booking.facility.name} on {booking.date}.'
-            ),
-        )
+        messages.success(request, 'Your booking request has been withdrawn.')
+        return redirect('bookings:my_requests')
 
-        # ── Waitlist Promotion (FIFO) ─────────────────────────────────────────
-        next_in_line = WaitlistEntry.objects.filter(
-            facility=booking.facility,
-            date=booking.date,
-            start_time=booking.start_time,
-            end_time=booking.end_time,
-        ).first()   # .first() returns oldest due to ordering = ['created_at']
+    return render(request, 'bookings/confirm_withdraw.html', {'br': booking_request})
 
-        if next_in_line:
-            new_booking = Booking.objects.create(
-                user=next_in_line.user,
-                facility=next_in_line.facility,
-                date=next_in_line.date,
-                start_time=next_in_line.start_time,
-                end_time=next_in_line.end_time,
-                status='confirmed',
+
+@facility_manager_required
+def admin_dashboard(request):
+    """Manager dashboard for reviewing booking requests in managed facilities."""
+
+    all_requests = BookingRequest.objects.select_related(
+        'user', 'facility', 'reviewed_by'
+    ).prefetch_related('approval_steps')
+    facilities = Facility.objects.filter(is_active=True)
+    if request.user.profile.is_sys_admin():
+        pass
+    elif request.user.profile.is_dept_admin():
+        all_requests = all_requests.filter(facility__department=request.user.profile.department)
+        facilities = facilities.filter(department=request.user.profile.department)
+    else:
+        all_requests = all_requests.filter(facility__managers=request.user)
+        facilities = facilities.filter(managers=request.user)
+
+    facility_id = request.GET.get('facility', '')
+    filter_date = request.GET.get('date', '')
+    filter_status = request.GET.get('status', '')
+
+    if facility_id:
+        all_requests = all_requests.filter(facility_id=facility_id)
+    if filter_date:
+        all_requests = all_requests.filter(start_datetime__date=filter_date)
+    if filter_status:
+        all_requests = all_requests.filter(status=filter_status)
+
+    pending_requests = all_requests.filter(status=BookingRequest.STATUS_PENDING)
+    reviewed_requests = all_requests.exclude(status=BookingRequest.STATUS_PENDING)
+
+    return render(request, 'bookings/admin_dashboard.html', {
+        'pending_requests': pending_requests,
+        'reviewed_requests': reviewed_requests,
+        'facilities': facilities,
+        'status_choices': BookingRequest.STATUS_CHOICES,
+        'filter_facility': facility_id,
+        'filter_date': filter_date,
+        'filter_status': filter_status,
+    })
+
+
+@facility_manager_required
+def admin_approve(request, pk):
+    """Approve the current pending approval step for a booking request."""
+
+    booking_request = get_object_or_404(BookingRequest, pk=pk)
+
+    if request.method == 'POST':
+        try:
+            result = approve_booking_request(booking_request=booking_request, acting_user=request.user)
+            step = result.current_approval_step
+            if result.status == BookingRequest.STATUS_APPROVED:
+                messages.success(
+                    request,
+                    f'Request #{pk} fully approved. Conflicting pending requests were rejected automatically.'
+                )
+            else:
+                next_level = step.level if step else '?'
+                messages.info(
+                    request,
+                    f'Request #{pk}: Level {next_level - 1} approved. Awaiting Level {next_level} approval.'
+                )
+        except PermissionDenied as exc:
+            messages.error(request, str(exc))
+        except ValidationError as exc:
+            messages.warning(request, exc.messages[0])
+
+    return redirect('bookings:admin_dashboard')
+
+
+@facility_manager_required
+def admin_reject(request, pk):
+    """Reject a pending booking request."""
+
+    booking_request = get_object_or_404(BookingRequest, pk=pk)
+    form = RejectRequestForm(request.POST or None)
+
+    if request.method == 'POST' and form.is_valid():
+        try:
+            reject_booking_request(
+                booking_request=booking_request,
+                acting_user=request.user,
+                reason=form.cleaned_data.get('reason', ''),
             )
-            ActivityLog.objects.create(
-                user=next_in_line.user,
-                action='BOOKING_PROMOTED',
-                details=(
-                    f'{next_in_line.user.username} promoted from waitlist to confirmed '
-                    f'for {new_booking.facility.name} on {new_booking.date}.'
-                ),
-            )
-            next_in_line.delete()
-            messages.info(
-                request,
-                f'Your booking was cancelled. The next person on the waitlist has been confirmed.'
-            )
-        else:
-            messages.success(request, 'Booking cancelled successfully.')
+            messages.info(request, f'Request #{pk} has been rejected.')
+            return redirect('bookings:admin_dashboard')
+        except PermissionDenied as exc:
+            messages.error(request, str(exc))
+            return redirect('bookings:admin_dashboard')
+        except ValidationError as exc:
+            messages.warning(request, exc.messages[0])
+            return redirect('bookings:admin_dashboard')
 
-        return redirect('bookings:list')
-
-    return render(request, 'bookings/confirm_cancel.html', {'booking': booking})
-
-
-@login_required
-def booking_approve(request, pk):
-    """Admin can manually approve a waitlisted booking."""
-    from users.decorators import admin_required
-    booking = get_object_or_404(Booking, pk=pk)
-    if request.method == 'POST' and hasattr(request.user, 'profile') and request.user.profile.is_admin():
-        booking.status = 'confirmed'
-        booking.save()
-        messages.success(request, f'Booking #{pk} approved.')
-    return redirect('bookings:list')
+    return render(request, 'bookings/confirm_reject.html', {'br': booking_request, 'form': form})

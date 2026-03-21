@@ -1,0 +1,248 @@
+{% extends 'base.html' %}
+{% block title %}Manager Dashboard - CampusBook{% endblock %}
+
+{% block content %}
+
+<!-- ── Page Header ──────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-0">
+            <i class="bi bi-shield-check text-primary"></i> Manager Dashboard
+        </h4>
+        <p class="text-muted small mb-0">Review and action booking requests for your facilities</p>
+    </div>
+    <a href="{% url 'facilities:list' %}" class="btn btn-outline-primary btn-sm">
+        <i class="bi bi-grid"></i> Browse Facilities
+    </a>
+</div>
+
+<!-- ── Stat Cards ────────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="stat-card stat-card--warning">
+            <div class="stat-card__icon"><i class="bi bi-hourglass-split"></i></div>
+            <div class="stat-card__value">{{ pending_requests|length }}</div>
+            <div class="stat-card__label">Pending</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card stat-card--success">
+            <div class="stat-card__icon"><i class="bi bi-check-circle"></i></div>
+            <div class="stat-card__value">
+                {{ reviewed_requests|length }}
+            </div>
+            <div class="stat-card__label">Reviewed</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card stat-card--danger">
+            <div class="stat-card__icon"><i class="bi bi-inbox"></i></div>
+            <div class="stat-card__value">
+                {{ pending_requests|length|add:reviewed_requests|length }}
+            </div>
+            <div class="stat-card__label">Total Requests</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card stat-card--info">
+            <div class="stat-card__icon"><i class="bi bi-building"></i></div>
+            <div class="stat-card__value">{{ facilities|length }}</div>
+            <div class="stat-card__label">My Facilities</div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Filter Card ───────────────────────────────────────────── -->
+<div class="card mb-4 border-0 shadow-sm">
+    <div class="card-header dashboard-filter-header">
+        <i class="bi bi-funnel-fill me-1"></i> Filter Requests
+    </div>
+    <div class="card-body py-3">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label fw-semibold small text-muted text-uppercase mb-1">
+                    <i class="bi bi-building"></i> Facility
+                </label>
+                <select name="facility" class="form-select form-select-sm">
+                    <option value="">All Facilities</option>
+                    {% for f in facilities %}
+                    <option value="{{ f.pk }}" {% if filter_facility == f.pk|stringformat:"s" %}selected{% endif %}>
+                        {{ f.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-semibold small text-muted text-uppercase mb-1">
+                    <i class="bi bi-calendar"></i> Date
+                </label>
+                <input type="date" name="date" class="form-control form-control-sm" value="{{ filter_date }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-semibold small text-muted text-uppercase mb-1">
+                    <i class="bi bi-tag"></i> Status
+                </label>
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">All Statuses</option>
+                    {% for val, label in status_choices %}
+                    <option value="{{ val }}" {% if filter_status == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm flex-fill">
+                    <i class="bi bi-search"></i> Filter
+                </button>
+                <a href="{% url 'bookings:admin_dashboard' %}" class="btn btn-outline-secondary btn-sm flex-fill">
+                    Clear
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ── Pending Requests ──────────────────────────────────────── -->
+<div class="d-flex align-items-center mb-3 gap-2">
+    <h5 class="fw-bold mb-0"><i class="bi bi-hourglass-split text-warning"></i> Pending Requests</h5>
+    {% if pending_requests %}
+    <span class="badge bg-warning text-dark">{{ pending_requests|length }}</span>
+    {% endif %}
+</div>
+
+{% if pending_requests %}
+<div class="row g-3 mb-5">
+    {% for r in pending_requests %}
+    <div class="col-md-6">
+        <div class="request-card">
+            <!-- Card Header -->
+            <div class="request-card__header">
+                <div class="d-flex align-items-center gap-2">
+                    {% if r.facility.facility_type == 'lab' %}
+                        <span class="ftype-badge ftype-badge--lab"><i class="bi bi-pc-display"></i></span>
+                    {% elif r.facility.facility_type == 'hall' %}
+                        <span class="ftype-badge ftype-badge--hall"><i class="bi bi-building"></i></span>
+                    {% else %}
+                        <span class="ftype-badge ftype-badge--sports"><i class="bi bi-trophy"></i></span>
+                    {% endif %}
+                    <div>
+                        <div class="fw-bold text-dark">{{ r.facility.name }}</div>
+                        <div class="small text-muted">{{ r.facility.get_facility_type_display }}</div>
+                    </div>
+                </div>
+                <span class="small text-muted">#{{ r.pk }}</span>
+            </div>
+            <!-- Card Body -->
+            <div class="request-card__body">
+                <div class="request-card__meta-row">
+                    <span><i class="bi bi-person-circle text-secondary"></i>
+                        <strong>{{ r.user.username }}</strong>
+                        <span class="badge bg-light text-dark border small ms-1">{{ r.user.profile.get_role_display }}</span>
+                    </span>
+                    <span class="text-muted small">
+                        <i class="bi bi-clock-history"></i> {{ r.created_at|date:"d M, H:i" }}
+                    </span>
+                </div>
+                <div class="request-card__meta-row mt-2">
+                    <span>
+                        <i class="bi bi-calendar-event text-primary"></i>
+                        <strong>{{ r.date|date:"d M Y" }}</strong>
+                    </span>
+                    <span>
+                        <i class="bi bi-clock text-primary"></i>
+                        {{ r.start_time|time:"H:i" }} – {{ r.end_time|time:"H:i" }}
+                    </span>
+                </div>
+                <div class="mt-2 pt-2 border-top">
+                    <p class="text-muted small mb-0 request-purpose" title="{{ r.purpose }}">
+                        <i class="bi bi-chat-left-text"></i> {{ r.purpose|truncatechars:90 }}
+                    </p>
+                </div>
+            </div>
+            <!-- Card Footer — Actions -->
+            <div class="request-card__footer">
+                <form method="post" action="{% url 'bookings:admin_approve' r.pk %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success btn-sm">
+                        <i class="bi bi-check-circle-fill"></i> Approve
+                    </button>
+                </form>
+                <a href="{% url 'bookings:admin_reject' r.pk %}" class="btn btn-danger btn-sm">
+                    <i class="bi bi-x-circle-fill"></i> Reject
+                </a>
+                <a href="{% url 'bookings:detail' r.pk %}" class="btn btn-outline-secondary btn-sm ms-auto">
+                    <i class="bi bi-eye"></i> Detail
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="alert alert-success d-flex align-items-center gap-2 mb-5 border-0 shadow-sm">
+    <i class="bi bi-check-circle-fill fs-5"></i>
+    <span>No pending requests at this time. All caught up!</span>
+</div>
+{% endif %}
+
+<!-- ── Previous Decisions ────────────────────────────────────── -->
+<div class="d-flex align-items-center mb-3 gap-2">
+    <h5 class="fw-bold mb-0"><i class="bi bi-archive text-secondary"></i> Previous Decisions</h5>
+</div>
+
+{% if reviewed_requests %}
+<div class="card border-0 shadow-sm mb-4">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 small">
+            <thead class="dashboard-table-head">
+                <tr>
+                    <th class="ps-3">#</th>
+                    <th>User</th>
+                    <th>Facility</th>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Status</th>
+                    <th>Reviewed By</th>
+                    <th class="text-end pe-3">View</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in reviewed_requests %}
+                <tr>
+                    <td class="ps-3 text-muted">{{ r.pk }}</td>
+                    <td>
+                        <span class="fw-semibold">{{ r.user.username }}</span>
+                    </td>
+                    <td>
+                        {{ r.facility.name }}
+                        <span class="text-muted d-block" style="font-size:0.72rem;">{{ r.facility.get_facility_type_display }}</span>
+                    </td>
+                    <td class="text-nowrap">{{ r.date|date:"d M Y" }}</td>
+                    <td class="text-nowrap">{{ r.start_time|time:"H:i" }} – {{ r.end_time|time:"H:i" }}</td>
+                    <td>
+                        {% if r.status == 'approved' %}
+                            <span class="badge bg-success">Approved</span>
+                        {% elif r.status == 'rejected' %}
+                            <span class="badge bg-danger">Rejected</span>
+                        {% elif r.status == 'withdrawn' %}
+                            <span class="badge bg-secondary">Withdrawn</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-muted">{{ r.reviewed_by.username|default:"—" }}</td>
+                    <td class="text-end pe-3">
+                        <a href="{% url 'bookings:detail' r.pk %}" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-light border shadow-sm">
+    <i class="bi bi-inbox me-1"></i> No reviewed requests to show for the current filter.
+</div>
+{% endif %}
+
+{% endblock %}

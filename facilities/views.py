@@ -1,128 +1,163 @@
-from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.urls import reverse_lazy
+from datetime import datetime
+
 from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.shortcuts import redirect
+from django.urls import reverse_lazy
+from django.utils import timezone
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
-from .models import Facility
-from .forms import FacilityForm
 from core.models import ActivityLog
+from core.services import log_activity
+
+from .forms import FacilityForm
+from .models import Facility
+from .services import get_facility_availability_map
 
 
-# ── Mixins ────────────────────────────────────────────────────────────────────
+class SysAdminRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
+    """Class-based view equivalent of the sys_admin_required decorator."""
 
-class AdminRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
-    """
-    Class-based view equivalent of @admin_required.
-    Inherits LoginRequiredMixin (redirects to login if not authenticated)
-    then UserPassesTestMixin (runs test_func, raises 403 on failure).
-    """
     def test_func(self):
         try:
-            return self.request.user.profile.is_admin()
+            return self.request.user.profile.is_sys_admin()
         except Exception:
             return False
 
     def handle_no_permission(self):
-        messages.error(self.request, 'Only admins can perform this action.')
+        messages.error(self.request, 'Only system admins can perform this action.')
         return redirect('core:home')
 
 
-# ── Public Views ──────────────────────────────────────────────────────────────
-
 class FacilityListView(ListView):
-    """
-    Shows all active facilities to everyone.
-    Supports optional filtering by facility_type via GET param.
-    """
-    model               = Facility
-    template_name       = 'facilities/list.html'
+    """Show all active facilities with daily availability and search filters."""
+
+    model = Facility
+    template_name = 'facilities/list.html'
     context_object_name = 'facilities'
-    paginate_by         = 9
+    paginate_by = 9
 
     def get_queryset(self):
-        qs = Facility.objects.filter(is_active=True)
-        facility_type = self.request.GET.get('type')
+        queryset = Facility.objects.filter(is_active=True).select_related('department').prefetch_related('managers')
+
+        # Filter by facility type
+        facility_type = self.request.GET.get('type', '').strip()
         if facility_type:
-            qs = qs.filter(facility_type=facility_type)
-        return qs
+            queryset = queryset.filter(facility_type=facility_type)
+
+        # Filter by minimum capacity
+        min_capacity = self.request.GET.get('min_capacity', '').strip()
+        if min_capacity:
+            try:
+                queryset = queryset.filter(capacity__gte=int(min_capacity))
+            except ValueError:
+                pass
+
+        # Filter by amenity keyword (substring match on comma-separated field)
+        amenity = self.request.GET.get('amenity', '').strip()
+        if amenity:
+            queryset = queryset.filter(amenities__icontains=amenity)
+
+        return queryset
 
     def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx['type_choices'] = Facility.TYPE_CHOICES
-        ctx['selected_type'] = self.request.GET.get('type', '')
-        return ctx
+        context = super().get_context_data(**kwargs)
+        context['type_choices'] = Facility.TYPE_CHOICES
+        context['selected_type'] = self.request.GET.get('type', '')
+        context['min_capacity'] = self.request.GET.get('min_capacity', '')
+        context['amenity'] = self.request.GET.get('amenity', '')
+
+        avail_date_str = self.request.GET.get('avail_date', '')
+        try:
+            avail_date = datetime.strptime(avail_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            avail_date = timezone.localdate()
+
+        page_facilities = list(context['facilities'])
+        availability_map = get_facility_availability_map(
+            facilities=page_facilities,
+            booking_date=avail_date,
+        )
+        for facility in page_facilities:
+            facility.slots = availability_map.get(facility.pk, [])
+            facility.start_hour_label = facility.open_time.strftime('%H:%M')
+            facility.end_hour_label = facility.close_time.strftime('%H:%M')
+
+        context['avail_date'] = avail_date
+        return context
 
 
 class FacilityDetailView(DetailView):
-    model         = Facility
+    model = Facility
     template_name = 'facilities/detail.html'
 
+    def get_queryset(self):
+        return Facility.objects.select_related('department').prefetch_related('managers')
+
     def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        # Pass today's date for the booking form link
-        from datetime import date
-        ctx['today'] = date.today()
-        return ctx
+        context = super().get_context_data(**kwargs)
+        context['today'] = timezone.localdate()
+        return context
 
 
-# ── Admin-only CRUD Views ─────────────────────────────────────────────────────
-
-class FacilityCreateView(AdminRequiredMixin, CreateView):
-    model         = Facility
-    form_class    = FacilityForm
+class FacilityCreateView(SysAdminRequiredMixin, CreateView):
+    model = Facility
+    form_class = FacilityForm
     template_name = 'facilities/form.html'
-    success_url   = reverse_lazy('facilities:list')
+    success_url = reverse_lazy('facilities:list')
 
     def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx['title'] = 'Add New Facility'
-        return ctx
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Add New Facility'
+        return context
 
     def form_valid(self, form):
         response = super().form_valid(form)
-        ActivityLog.objects.create(
+        log_activity(
             user=self.request.user,
-            action='FACILITY_CREATED',
-            details=f'Facility "{self.object.name}" created.',
+            action=ActivityLog.ACTION_FACILITY_CREATED,
+            obj=self.object,
+            metadata={'facility_name': self.object.name},
         )
         messages.success(self.request, f'Facility "{self.object.name}" created successfully.')
         return response
 
 
-class FacilityUpdateView(AdminRequiredMixin, UpdateView):
-    model         = Facility
-    form_class    = FacilityForm
+class FacilityUpdateView(SysAdminRequiredMixin, UpdateView):
+    model = Facility
+    form_class = FacilityForm
     template_name = 'facilities/form.html'
-    success_url   = reverse_lazy('facilities:list')
+    success_url = reverse_lazy('facilities:list')
 
     def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx['title'] = f'Edit — {self.object.name}'
-        return ctx
+        context = super().get_context_data(**kwargs)
+        context['title'] = f'Edit - {self.object.name}'
+        return context
 
     def form_valid(self, form):
         response = super().form_valid(form)
-        ActivityLog.objects.create(
+        log_activity(
             user=self.request.user,
-            action='FACILITY_UPDATED',
-            details=f'Facility "{self.object.name}" updated.',
+            action=ActivityLog.ACTION_FACILITY_UPDATED,
+            obj=self.object,
+            metadata={'facility_name': self.object.name},
         )
         messages.success(self.request, f'Facility "{self.object.name}" updated.')
         return response
 
 
-class FacilityDeleteView(AdminRequiredMixin, DeleteView):
-    model         = Facility
+class FacilityDeleteView(SysAdminRequiredMixin, DeleteView):
+    model = Facility
     template_name = 'facilities/confirm_delete.html'
-    success_url   = reverse_lazy('facilities:list')
+    success_url = reverse_lazy('facilities:list')
 
     def form_valid(self, form):
         name = self.object.name
-        ActivityLog.objects.create(
+        log_activity(
             user=self.request.user,
-            action='FACILITY_DELETED',
-            details=f'Facility "{name}" deleted.',
+            action=ActivityLog.ACTION_FACILITY_DELETED,
+            obj=self.object,
+            metadata={'facility_name': name},
         )
         messages.warning(self.request, f'Facility "{name}" deleted.')
         return super().form_valid(form)
