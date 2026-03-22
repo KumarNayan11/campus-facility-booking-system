@@ -26,6 +26,11 @@ class UserAdmin(BaseUserAdmin):
     list_filter   = ('is_staff', 'is_superuser', 'profile__role', 'profile__department')
     search_fields = ('username', 'email', 'first_name', 'last_name')
 
+    def get_inline_instances(self, request, obj=None):
+        if not obj:
+            return list()
+        return super(UserAdmin, self).get_inline_instances(request, obj)
+
     @admin.display(description='Role')
     def get_role(self, obj):
         try:
